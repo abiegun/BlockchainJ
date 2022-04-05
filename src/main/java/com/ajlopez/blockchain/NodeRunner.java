@@ -39,12 +39,18 @@ public class NodeRunner {
 
         if (this.nodeConfiguration.getHosts() != null && !this.nodeConfiguration.getHosts().isEmpty())
             for (String peer : this.nodeConfiguration.getHosts()) {
-                String[] parts = peer.split(":");
-                String host = parts[0];
-                int port = Integer.parseInt(parts[1]);
+                try {
+                    System.out.print("Connecting "+peer+"... ");
+                    String[] parts = peer.split(":");
+                    String host = parts[0];
+                    int port = Integer.parseInt(parts[1]);
 
-                TcpPeerClient client = new TcpPeerClient(host, port, this.network, this.nodeProcessor);
-                client.connect();
+                    TcpPeerClient client = new TcpPeerClient(host, port, this.network, this.nodeProcessor);
+                    client.connect();
+                    System.out.println();
+                } catch(Exception ex) {
+                    System.out.println(ex.getMessage());
+                }
             }
     }
 

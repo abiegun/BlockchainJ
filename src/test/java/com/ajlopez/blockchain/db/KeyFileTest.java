@@ -6,6 +6,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -18,120 +19,151 @@ public class KeyFileTest {
 
     @Test
     public void writeAndReadKey() throws IOException {
-        KeyFile keyFile = new KeyFile("kftest1.data", 32);
+        final String NAME = "kftest1.data";
+        KeyFile keyFile = new KeyFile(NAME, 32);
+        try {
+            byte[] key = FactoryHelper.createRandomBytes(32);
 
-        byte[] key = FactoryHelper.createRandomBytes(32);
+            Assert.assertFalse(keyFile.containsKey(key));
 
-        Assert.assertFalse(keyFile.containsKey(key));
+            keyFile.writeKey(key, 0L, 42);
 
-        keyFile.writeKey(key, 0L, 42);
+            ValueInfo result = keyFile.readKey(key);
 
-        ValueInfo result = keyFile.readKey(key);
+            Assert.assertNotNull(result);
+            Assert.assertEquals(0L, result.position);
+            Assert.assertEquals(42, result.length);
+            Assert.assertTrue(keyFile.containsKey(key));
+        } finally {
+            keyFile.close();
+            new File(NAME).delete();
+        }
 
-        Assert.assertNotNull(result);
-        Assert.assertEquals(0L, result.position);
-        Assert.assertEquals(42, result.length);
-        Assert.assertTrue(keyFile.containsKey(key));
     }
 
     @Test
     public void cannotWriteSameKeyTwice() throws IOException {
-        KeyFile keyFile = new KeyFile("kftest1.data", 32);
+        final String NAME = "kftest2.data";
+        KeyFile keyFile = new KeyFile(NAME, 32);
+        try {
+            byte[] key = FactoryHelper.createRandomBytes(32);
 
-        byte[] key = FactoryHelper.createRandomBytes(32);
-
-        keyFile.writeKey(key, 0L, 42);
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("key already exists");
-        keyFile.writeKey(key, 0L, 42);
+            keyFile.writeKey(key, 0L, 42);
+            exception.expect(IllegalStateException.class);
+            exception.expectMessage("key already exists");
+            keyFile.writeKey(key, 0L, 42);
+        } finally {
+            keyFile.close();
+            new File(NAME).delete();
+        }
     }
 
     @Test
     public void writeAndReadThreeKeys() throws IOException {
-        KeyFile keyFile = new KeyFile("kftest2.data", 32);
+        final String NAME = "kftest3.data";
+        KeyFile keyFile = new KeyFile(NAME, 32);
+        try {
+            byte[] key1 = FactoryHelper.createRandomBytes(32);
+            byte[] key2 = FactoryHelper.createRandomBytes(32);
+            byte[] key3 = FactoryHelper.createRandomBytes(32);
 
-        byte[] key1 = FactoryHelper.createRandomBytes(32);
-        byte[] key2 = FactoryHelper.createRandomBytes(32);
-        byte[] key3 = FactoryHelper.createRandomBytes(32);
+            keyFile.writeKey(key1, 0L, 42);
+            keyFile.writeKey(key2, 42L, 42 * 2);
 
-        keyFile.writeKey(key1, 0L, 42);
-        keyFile.writeKey(key2, 42L, 42 * 2);
+            ValueInfo result1 = keyFile.readKey(key1);
 
-        ValueInfo result1 = keyFile.readKey(key1);
+            Assert.assertNotNull(result1);
+            Assert.assertEquals(0L, result1.position);
+            Assert.assertEquals(42, result1.length);
 
-        Assert.assertNotNull(result1);
-        Assert.assertEquals(0L, result1.position);
-        Assert.assertEquals(42, result1.length);
+            keyFile.writeKey(key3, 42L * 2, 42 * 3);
 
-        keyFile.writeKey(key3, 42L * 2, 42 * 3);
+            ValueInfo result2 = keyFile.readKey(key2);
 
-        ValueInfo result2 = keyFile.readKey(key2);
+            Assert.assertNotNull(result2);
+            Assert.assertEquals(42L, result2.position);
+            Assert.assertEquals(42 * 2, result2.length);
 
-        Assert.assertNotNull(result2);
-        Assert.assertEquals(42L, result2.position);
-        Assert.assertEquals(42 * 2, result2.length);
+            ValueInfo result3 = keyFile.readKey(key3);
 
-        ValueInfo result3 = keyFile.readKey(key3);
-
-        Assert.assertNotNull(result3);
-        Assert.assertEquals(42L * 2, result3.position);
-        Assert.assertEquals(42 * 3, result3.length);
+            Assert.assertNotNull(result3);
+            Assert.assertEquals(42L * 2, result3.position);
+            Assert.assertEquals(42 * 3, result3.length);
+        } finally {
+            keyFile.close();
+            new File(NAME).delete();
+        }
     }
 
     @Test
     public void writeThreeKeysCloseAndReopenFileAndReadTheKeys() throws IOException {
-        KeyFile keyFile = new KeyFile("kftest3.data", 32);
+        final String NAME = "kftest4.data";
+        KeyFile keyFile = new KeyFile(NAME, 32);
+        try {
+            byte[] key1 = FactoryHelper.createRandomBytes(32);
+            byte[] key2 = FactoryHelper.createRandomBytes(32);
+            byte[] key3 = FactoryHelper.createRandomBytes(32);
 
-        byte[] key1 = FactoryHelper.createRandomBytes(32);
-        byte[] key2 = FactoryHelper.createRandomBytes(32);
-        byte[] key3 = FactoryHelper.createRandomBytes(32);
+            keyFile.writeKey(key1, 0L, 42);
+            keyFile.writeKey(key2, 42L, 42 * 2);
+            keyFile.writeKey(key3, 42L * 2, 42 * 3);
 
-        keyFile.writeKey(key1, 0L, 42);
-        keyFile.writeKey(key2, 42L, 42 * 2);
-        keyFile.writeKey(key3, 42L * 2, 42 * 3);
+            keyFile.close();
 
-        keyFile.close();
+            keyFile = new KeyFile(NAME, 32);
 
-        KeyFile keyFile2 = new KeyFile("kftest3.data", 32);
+            ValueInfo result1 = keyFile.readKey(key1);
 
-        ValueInfo result1 = keyFile2.readKey(key1);
+            Assert.assertNotNull(result1);
+            Assert.assertEquals(0L, result1.position);
+            Assert.assertEquals(42, result1.length);
 
-        Assert.assertNotNull(result1);
-        Assert.assertEquals(0L, result1.position);
-        Assert.assertEquals(42, result1.length);
+            ValueInfo result2 = keyFile.readKey(key2);
 
-        ValueInfo result2 = keyFile2.readKey(key2);
+            Assert.assertNotNull(result2);
+            Assert.assertEquals(42L, result2.position);
+            Assert.assertEquals(42 * 2, result2.length);
 
-        Assert.assertNotNull(result2);
-        Assert.assertEquals(42L, result2.position);
-        Assert.assertEquals(42 * 2, result2.length);
+            ValueInfo result3 = keyFile.readKey(key3);
 
-        ValueInfo result3 = keyFile2.readKey(key3);
-
-        Assert.assertNotNull(result3);
-        Assert.assertEquals(42L * 2, result3.position);
-        Assert.assertEquals(42 * 3, result3.length);
+            Assert.assertNotNull(result3);
+            Assert.assertEquals(42L * 2, result3.position);
+            Assert.assertEquals(42 * 3, result3.length);
+        } finally {
+            keyFile.close();
+            new File(NAME).delete();
+        }
     }
 
     @Test
     public void cannotWriteNullKey() throws IOException {
-        KeyFile keyFile = new KeyFile("kftest4.data", 32);
+        final String NAME = "kftest5.data";
+        KeyFile keyFile = new KeyFile(NAME, 32);
+        try {
+            exception.expect(IllegalArgumentException.class);
+            exception.expectMessage("invalid key");
 
-        exception.expect(IllegalArgumentException.class);
-        exception.expectMessage("invalid key");
-
-        keyFile.writeKey(null, 0L, 42);
+            keyFile.writeKey(null, 0L, 42);
+        } finally {
+            keyFile.close();
+            new File(NAME).delete();
+        }
     }
 
     @Test
     public void cannotWriteKeyWithInvalidLength() throws IOException {
-        KeyFile keyFile = new KeyFile("kftest5.data", 32);
+        final String NAME = "kftest6.data";
+        KeyFile keyFile = new KeyFile(NAME, 32);
+        try {
+            byte[] key = FactoryHelper.createRandomBytes(42);
 
-        byte[] key = FactoryHelper.createRandomBytes(42);
+            exception.expect(IllegalArgumentException.class);
+            exception.expectMessage("invalid key");
 
-        exception.expect(IllegalArgumentException.class);
-        exception.expectMessage("invalid key");
-
-        keyFile.writeKey(key, 0L, 42);
+            keyFile.writeKey(key, 0L, 42);
+        } finally {
+            keyFile.close();
+            new File(NAME).delete();
+        }
     }
 }

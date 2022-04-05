@@ -7,15 +7,10 @@ import java.io.RandomAccessFile;
 /**
  * Created by ajlopez on 20/10/2019.
  */
-public class ValueFile {
-    private final RandomAccessFile file;
+public class ValueFile extends WritableFile {
 
     public ValueFile(String name) throws FileNotFoundException {
-        this.file = new RandomAccessFile(name, "rw");
-    }
-
-    public void close() throws IOException {
-        this.file.close();
+        super(name);
     }
 
     public long writeValue(byte[] value) throws IOException {

@@ -29,8 +29,6 @@ public class Start {
     public static void main(String[] args) throws IOException {
         ObjectContext objectContext = new ObjectContext(new MemoryKeyValueStores());
 
-        Wallet wallet = createWallet(objectContext);
-
         ArgumentsProcessor argsproc = processArguments(args);
 
         NetworkConfiguration networkConfiguration = new NetworkConfiguration((short)1);
@@ -40,7 +38,13 @@ public class Start {
 
         launchNodeRunner(objectContext, port, peers, networkConfiguration);
 
+        Wallet wallet = createWallet(objectContext);
+
         boolean isMiner = argsproc.getBoolean("miner");
+        boolean isGenesis = argsproc.getBoolean("genesis");
+        if (isGenesis) {
+            genesis(objectContext);
+        }
 
         if (isMiner) {
             String coinbaseText = argsproc.getString("coinbase");
@@ -66,13 +70,15 @@ public class Start {
         Coin balance = Coin.fromBytes(oneMillion.mul(oneMillion).mul(oneMillion).mul(DataWord.fromUnsignedInteger(100)).getBytes());
         Wallet wallet = walletCreator.createWallet(10, balance);
         accountStore.save();
-
-        Block genesis = GenesisGenerator.generateGenesis(accountStore);
-
-        objectContext.getBlockChain().connectBlock(genesis);
-
         return wallet;
     }
+
+    private static void genesis(ObjectContext objectContext) throws IOException {
+        AccountStore accountStore = objectContext.getStores().getAccountStoreProvider().retrieve(Trie.EMPTY_TRIE_HASH);
+        Block genesis = GenesisGenerator.generateGenesis(accountStore);
+        objectContext.getBlockChain().connectBlock(genesis);
+    }
+
 
     private static void launchRpcServer(ObjectContext objectContext, Wallet wallet, NetworkConfiguration networkConfiguration, int rpcport) {
         RpcRunner rpcrunner = new RpcRunner(objectContext.getBlockChain(), rpcport, objectContext.getStores().getAccountStoreProvider(), objectContext.getTransactionPool(), networkConfiguration, wallet);
@@ -114,6 +120,7 @@ public class Start {
 
         processor.defineBoolean("m", "miner", false);
         processor.defineString("k", "coinbase", "");
+        processor.defineBoolean("g", "genesis", false);
 
         processor.processArguments(args);
 

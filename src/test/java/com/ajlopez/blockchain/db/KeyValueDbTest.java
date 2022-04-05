@@ -6,6 +6,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -16,58 +17,85 @@ public class KeyValueDbTest {
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
+    private void deleteFiles(String name) {
+        new File(name+".values").delete();
+        new File(name+".keys").delete();
+    }
     @Test
     public void saveAndRetrieveKeyValue() throws IOException {
-        KeyValueDb keyValueDb = new KeyValueDb("data0", 32);
+        String NAME = "data0";
+        KeyValueDb keyValueDb = new KeyValueDb(NAME, 32);
+        try {
+            byte[] key = FactoryHelper.createRandomBytes(32);
+            byte[] value = FactoryHelper.createRandomBytes(42);
 
-        byte[] key = FactoryHelper.createRandomBytes(32);
-        byte[] value = FactoryHelper.createRandomBytes(42);
+            keyValueDb.setValue(key, value);
 
-        keyValueDb.setValue(key, value);
+            byte[] result = keyValueDb.getValue(key);
 
-        byte[] result = keyValueDb.getValue(key);
-
-        Assert.assertNotNull(result);
-        Assert.assertArrayEquals(value, result);
+            Assert.assertNotNull(result);
+            Assert.assertArrayEquals(value, result);
+        } finally {
+            keyValueDb.close();
+            deleteFiles(NAME);
+        }
     }
 
     @Test
     public void saveTwiceAndRetrieveKeyValue() throws IOException {
-        KeyValueDb keyValueDb = new KeyValueDb("data1", 32);
+        String NAME = "data1";
+        KeyValueDb keyValueDb = new KeyValueDb(NAME, 32);
+        try {
+            byte[] key = FactoryHelper.createRandomBytes(32);
+            byte[] value = FactoryHelper.createRandomBytes(42);
 
-        byte[] key = FactoryHelper.createRandomBytes(32);
-        byte[] value = FactoryHelper.createRandomBytes(42);
+            keyValueDb.setValue(key, value);
+            keyValueDb.setValue(key, value);
 
-        keyValueDb.setValue(key, value);
-        keyValueDb.setValue(key, value);
+            byte[] result = keyValueDb.getValue(key);
 
-        byte[] result = keyValueDb.getValue(key);
-
-        Assert.assertNotNull(result);
-        Assert.assertArrayEquals(value, result);
+            Assert.assertNotNull(result);
+            Assert.assertArrayEquals(value, result);
+        } finally {
+            keyValueDb.close();
+            deleteFiles(NAME);
+        }
     }
 
     @Test
     public void cannotChangeValueForKey() throws IOException {
-        KeyValueDb keyValueDb = new KeyValueDb("data2", 32);
+        String NAME = "data2";
+        KeyValueDb keyValueDb = new KeyValueDb(NAME, 32);
+        try {
+            byte[] key = FactoryHelper.createRandomBytes(32);
+            byte[] value = FactoryHelper.createRandomBytes(42);
+            byte[] value2 = FactoryHelper.createRandomBytes(42);
 
-        byte[] key = FactoryHelper.createRandomBytes(32);
-        byte[] value = FactoryHelper.createRandomBytes(42);
-        byte[] value2 = FactoryHelper.createRandomBytes(42);
+            keyValueDb.setValue(key, value);
 
-        keyValueDb.setValue(key, value);
+            exception.expect(IllegalStateException.class);
+            exception.expectMessage("cannot change value for key");
+            keyValueDb.setValue(key, value2);
+        } finally {
+            keyValueDb.close();
+            deleteFiles(NAME);
+        }
 
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("cannot change value for key");
-        keyValueDb.setValue(key, value2);
     }
 
     @Test
     public void retrieveUnknownValueAsNull() throws IOException {
-        KeyValueDb keyValueDb = new KeyValueDb("data3", 32);
+        String NAME = "data3";
+        KeyValueDb keyValueDb = new KeyValueDb(NAME, 32);
+        try {
+            byte[] key = FactoryHelper.createRandomBytes(32);
 
-        byte[] key = FactoryHelper.createRandomBytes(32);
+            Assert.assertNull(keyValueDb.getValue(key));
+        } finally {
+            keyValueDb.close();
+            deleteFiles(NAME);
+        }
 
-        Assert.assertNull(keyValueDb.getValue(key));
     }
+
 }

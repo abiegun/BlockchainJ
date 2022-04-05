@@ -10,13 +10,12 @@ import java.util.Map;
 /**
  * Created by ajlopez on 21/10/2019.
  */
-public class KeyFile {
-    private final RandomAccessFile file;
+public class KeyFile extends WritableFile {
     private final int keyLength;
     private Map<ByteArrayWrapper, ValueInfo> keys = new HashMap<>();
 
     public KeyFile(String name, int keyLength) throws IOException {
-        this.file = new RandomAccessFile(name, "rw");
+        super(name);
         this.keyLength = keyLength;
 
         int blockSize = this.getBlockSize();
@@ -71,7 +70,4 @@ public class KeyFile {
         return this.keys.containsKey(new ByteArrayWrapper(key));
     }
 
-    public void close() throws IOException {
-        this.file.close();
-    }
 }

@@ -63,4 +63,9 @@ public class KeyValueDb implements KeyValueStore {
             this.lock.readLock().unlock();
         }
     }
+
+    public void close() throws IOException {
+        valueFile.close();
+        keyFile.close();
+    }
 }
